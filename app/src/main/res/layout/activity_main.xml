@@ -11,8 +11,10 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Medium Text"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:fontFamily="sans-serif-light"
+        android:textSize="60sp"
+        android:text="Large Text"
         android:id="@+id/textView"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="38dp"
