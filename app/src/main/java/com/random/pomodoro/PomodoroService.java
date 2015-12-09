@@ -1,66 +1,74 @@
 package com.random.pomodoro;
 
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Bundle;
+import android.os.IBinder;
+import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.view.View;
 
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class PomodoroOnClickListener implements View.OnClickListener {
+public class PomodoroService extends Service {
     static final String START_TIME = "start_time";
     static final String IS_RUNNING = "is_running";
-    private final Context context;
     private long startTime;
     private Timer timer;
     private boolean isRunning;
 
-    public PomodoroOnClickListener(Context context) {
-        this.context = context;
-    }
 
     @Override
-    public void onClick(View v) {
-        if (isRunning) return;
-        isRunning = true;
-        startTime = new Date().getTime();
-        startTimer();
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d("onStart", "onStart on Service");
+        Log.d("onStart", ""+startId);
+        if (!isRunning) {
+            isRunning = true;
+            startTime = new Date().getTime();
+            startTimer();
+        }
+        return super.onStartCommand(intent, START_STICKY, startId);
     }
 
     private void startTimer() {
         timer = new Timer();
-        TimerTask timerTask = new PomodoroTimerTask(startTime, context);
+        TimerTask timerTask = new PomodoroTimerTask(startTime, this);
         timer.scheduleAtFixedRate(timerTask, 0, 1000);
     }
 
     public void onDestroy() {
+        Log.d("onDestroy", "onDestroy on Service");
         if (timer != null)
             timer.cancel();
     }
 
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-        savedInstanceState.putLong(START_TIME, startTime);
-        savedInstanceState.putBoolean(IS_RUNNING, isRunning);
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 
-    public void onRestoreInstanceState(Bundle savedInstanceState) {
-        isRunning = savedInstanceState.getBoolean(IS_RUNNING, false);
-        if (isRunning) {
-            startTime = savedInstanceState.getLong(START_TIME);
-            startTimer();
-        }
-    }
+//    public void onSaveInstanceState(Bundle savedInstanceState) {
+//        savedInstanceState.putLong(START_TIME, startTime);
+//        savedInstanceState.putBoolean(IS_RUNNING, isRunning);
+//    }
+//
+//    public void onRestoreInstanceState(Bundle savedInstanceState) {
+//        isRunning = savedInstanceState.getBoolean(IS_RUNNING, false);
+//        if (isRunning) {
+//            startTime = savedInstanceState.getLong(START_TIME);
+//            startTimer();
+//        }
+//    }
 
-    public void complete() {
-        isRunning = false;
-        timer.cancel();
-    }
+//    public void complete() {
+//        isRunning = false;
+//        timer.cancel();
+//    }
 
-    public static class PomodoroTimerTask extends TimerTask {
+    public class PomodoroTimerTask extends TimerTask {
         public static final int NUMBER_OF_MILLISECONDS_IN_A_SECOND = 1000;
         public static final int NUMBER_OF_SECONDS_IN_MIN = 60;
         public static final String TIMER_ACTION = "com.random.pomodoro.timer_broadcast";
@@ -89,11 +97,13 @@ public class PomodoroOnClickListener implements View.OnClickListener {
                 intent.putExtra(BROADCAST_TYPE, TICK);
                 intent.putExtra("elapsed_time_mins", elapsedTimeMins);
                 intent.putExtra("elapsed_time_secs", elapsedTimeSecs);
-
             } else {
                 intent.putExtra(BROADCAST_TYPE, FINISH);
             }
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+            if (elapsedTimeMillis > MainActivity.TOTAL_TIME) {
+                stopSelf();
+            }
         }
     }
 }

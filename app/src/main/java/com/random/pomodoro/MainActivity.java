@@ -7,32 +7,37 @@ import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import static com.random.pomodoro.PomodoroOnClickListener.PomodoroTimerTask.BROADCAST_TYPE;
-import static com.random.pomodoro.PomodoroOnClickListener.PomodoroTimerTask.FINISH;
-import static com.random.pomodoro.PomodoroOnClickListener.PomodoroTimerTask.TICK;
+import static com.random.pomodoro.PomodoroService.PomodoroTimerTask.BROADCAST_TYPE;
+import static com.random.pomodoro.PomodoroService.PomodoroTimerTask.FINISH;
+import static com.random.pomodoro.PomodoroService.PomodoroTimerTask.TICK;
 
 public class MainActivity extends AppCompatActivity {
-    public static final long TOTAL_TIME = 10000;
+    public static final long TOTAL_TIME = 60000;
 
     TextView textView;
-    private PomodoroOnClickListener listener;
-
     BroadcastReceiver receiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        Log.d("onCreate", "onCreate on Activity");
         textView = (TextView) findViewById(R.id.textView);
 
         Button button = (Button) findViewById(R.id.button);
-        listener = new PomodoroOnClickListener(this);
-        button.setOnClickListener(listener);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                startService(new Intent(getApplicationContext(), PomodoroService.class));
+            }
+        });
 
         receiver = new BroadcastReceiver() {
             @Override
@@ -40,11 +45,12 @@ public class MainActivity extends AppCompatActivity {
                 String broadcastType = intent.getStringExtra(BROADCAST_TYPE);
                 switch (broadcastType) {
                     case TICK:
+                        Log.d("TICK", String.valueOf(intent.getLongExtra("elapsed_time_mins", 0)+intent.getLongExtra("elapsed_time_secs", 0)));
                         textView.setText(String.format("%02d:%02d", intent.getLongExtra("elapsed_time_mins", 0), intent.getLongExtra("elapsed_time_secs", 0)));
                         break;
                     case FINISH:
+                        Log.d("FINISH", "FINISH");
                         Toast.makeText(MainActivity.this, "Pomodoro Successful", Toast.LENGTH_LONG).show();
-                        listener.complete();
                         break;
                 }
             }
@@ -61,24 +67,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver,
-                new IntentFilter(PomodoroOnClickListener.PomodoroTimerTask.TIMER_ACTION));
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-        listener.onSaveInstanceState(savedInstanceState);
-    }
-
-
-    public void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        listener.onRestoreInstanceState(savedInstanceState);
+                new IntentFilter(PomodoroService.PomodoroTimerTask.TIMER_ACTION));
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        listener.onDestroy();
+//        stopService(new Intent(getApplicationContext(), PomodoroService.class));
     }
 }
