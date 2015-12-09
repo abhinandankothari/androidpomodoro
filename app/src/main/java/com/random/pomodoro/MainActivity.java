@@ -17,6 +17,10 @@ public class MainActivity extends AppCompatActivity {
     int seconds, minutes;
     long time = 60000;
     TextView textView;
+    static final String START_TIME = "start_time";
+    static final String IS_RUNNING = "is_running";
+    private  long startTime;
+    private boolean isRunning;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,15 +34,44 @@ public class MainActivity extends AppCompatActivity {
         button.setOnClickListener(new PomodoroOnClickListener());
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        Log.d("save", "saveinstance");
+        // Save custom values into the bundle
+        savedInstanceState.putLong(START_TIME, startTime);
+        savedInstanceState.putBoolean(IS_RUNNING, isRunning);
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+
+        Log.d("restore", "isrestore");
+
+        // Always call the superclass so it can restore the view hierarchy
+        super.onRestoreInstanceState(savedInstanceState);
+        // Restore state members from saved instance
+        startTime = savedInstanceState.getLong(START_TIME);
+        isRunning = savedInstanceState.getBoolean(IS_RUNNING);
+        if(isRunning){
+            Timer timer = new Timer();
+            TimerTask tasknew = new PomodoroTimerTask(startTime);
+            timer.scheduleAtFixedRate(tasknew, 0, 1000);
+        }
+    }
 
     private class PomodoroTimerTask extends TimerTask {
 
         public static final int NUMBER_OF_MILLISECONDS_IN_A_SECOND = 1000;
         public static final int NUMBER_OF_SECONDS_IN_MIN = 60;
-        private final long startTime;
 
-        public PomodoroTimerTask() {
-            startTime = new Date().getTime();
+
+        public PomodoroTimerTask(long startTimeParam) {
+            if (startTimeParam == 0)
+                startTime = new Date().getTime();
+            else startTime = startTimeParam;
+
         }
 
         @Override
@@ -63,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(MainActivity.this, "Pomodoro Successful", Toast.LENGTH_LONG).show();
+                        isRunning = false;
                         textView.setText("00:00");
                     }
                 });
@@ -75,8 +109,9 @@ public class MainActivity extends AppCompatActivity {
     private class PomodoroOnClickListener implements View.OnClickListener {
         @Override
         public void onClick(View v) {
+            isRunning = true;
             Timer timer = new Timer();
-            TimerTask tasknew = new PomodoroTimerTask();
+            TimerTask tasknew = new PomodoroTimerTask(startTime);
             timer.scheduleAtFixedRate(tasknew, 0, 1000);
         }
     }
