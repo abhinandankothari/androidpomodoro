@@ -94,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onClick(View v) {
+            if (isRunning) return;
             isRunning = true;
             startTime = new Date().getTime();
             startTimer();
