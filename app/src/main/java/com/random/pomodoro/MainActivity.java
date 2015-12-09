@@ -13,14 +13,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
+    public static final long TOTAL_TIME = 10000;
 
-    int seconds, minutes;
-    long time = 60000;
     TextView textView;
-    static final String START_TIME = "start_time";
-    static final String IS_RUNNING = "is_running";
-    private  long startTime;
-    private boolean isRunning;
+    private PomodoroOnClickListener listener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,61 +26,47 @@ public class MainActivity extends AppCompatActivity {
         textView = (TextView) findViewById(R.id.textView);
 
         Button button = (Button) findViewById(R.id.button);
-        textView.setText("00:00");
-        button.setOnClickListener(new PomodoroOnClickListener());
+        listener = new PomodoroOnClickListener();
+        button.setOnClickListener(listener);
     }
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-        Log.d("save", "saveinstance");
-        // Save custom values into the bundle
-        savedInstanceState.putLong(START_TIME, startTime);
-        savedInstanceState.putBoolean(IS_RUNNING, isRunning);
-        // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
+        listener.onSaveInstanceState(savedInstanceState);
     }
 
 
     public void onRestoreInstanceState(Bundle savedInstanceState) {
-
-        Log.d("restore", "isrestore");
-
-        // Always call the superclass so it can restore the view hierarchy
         super.onRestoreInstanceState(savedInstanceState);
-        // Restore state members from saved instance
-        startTime = savedInstanceState.getLong(START_TIME);
-        isRunning = savedInstanceState.getBoolean(IS_RUNNING);
-        if(isRunning){
-            Timer timer = new Timer();
-            TimerTask tasknew = new PomodoroTimerTask(startTime);
-            timer.scheduleAtFixedRate(tasknew, 0, 1000);
-        }
+        listener.onRestoreInstanceState(savedInstanceState);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        listener.onDestroy();
     }
 
     private class PomodoroTimerTask extends TimerTask {
-
         public static final int NUMBER_OF_MILLISECONDS_IN_A_SECOND = 1000;
         public static final int NUMBER_OF_SECONDS_IN_MIN = 60;
-
+        private final long startTime;
 
         public PomodoroTimerTask(long startTimeParam) {
-            if (startTimeParam == 0)
-                startTime = new Date().getTime();
-            else startTime = startTimeParam;
-
+            startTime = startTimeParam;
         }
 
         @Override
         public void run() {
             long currentTime = new Date().getTime();
             long elapsedTimeMillis = currentTime - startTime;
-            Log.d("APP_LOG", "time " + elapsedTimeMillis);
-            if (elapsedTimeMillis <= time) {
+            Log.d("APP_LOG", "TOTAL_TIME " + elapsedTimeMillis);
+            if (elapsedTimeMillis <= TOTAL_TIME) {
                 final long elapsedTimeMins = elapsedTimeMillis / NUMBER_OF_MILLISECONDS_IN_A_SECOND / NUMBER_OF_SECONDS_IN_MIN;
                 final long elapsedTimeSecs = (elapsedTimeMillis / NUMBER_OF_MILLISECONDS_IN_A_SECOND) % NUMBER_OF_SECONDS_IN_MIN;
                 Log.d("APP_LOG", String.format("%02d:%02d", elapsedTimeMins, elapsedTimeSecs));
                 runOnUiThread(new Runnable() {
-
                     @Override
                     public void run() {
                         textView.setText(String.format("%02d:%02d", elapsedTimeMins, elapsedTimeSecs));
@@ -96,23 +78,54 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         Toast.makeText(MainActivity.this, "Pomodoro Successful", Toast.LENGTH_LONG).show();
-                        isRunning = false;
-                        textView.setText("00:00");
                     }
                 });
-                cancel();
-
+                listener.complete();
             }
         }
     }
 
     private class PomodoroOnClickListener implements View.OnClickListener {
+        static final String START_TIME = "start_time";
+        static final String IS_RUNNING = "is_running";
+        private long startTime;
+        private Timer timer;
+        private boolean isRunning;
+
         @Override
         public void onClick(View v) {
             isRunning = true;
-            Timer timer = new Timer();
-            TimerTask tasknew = new PomodoroTimerTask(startTime);
-            timer.scheduleAtFixedRate(tasknew, 0, 1000);
+            startTime = new Date().getTime();
+            startTimer();
+        }
+
+        private void startTimer() {
+            timer = new Timer();
+            TimerTask timerTask = new PomodoroTimerTask(startTime);
+            timer.scheduleAtFixedRate(timerTask, 0, 1000);
+        }
+
+        public void onDestroy() {
+            if (timer != null)
+                timer.cancel();
+        }
+
+        private void onSaveInstanceState(Bundle savedInstanceState) {
+            savedInstanceState.putLong(START_TIME, startTime);
+            savedInstanceState.putBoolean(IS_RUNNING, isRunning);
+        }
+
+        public void onRestoreInstanceState(Bundle savedInstanceState) {
+            isRunning = savedInstanceState.getBoolean(IS_RUNNING, false);
+            if (isRunning) {
+                startTime = savedInstanceState.getLong(START_TIME);
+                startTimer();
+            }
+        }
+
+        public void complete() {
+            isRunning = false;
+            timer.cancel();
         }
     }
 }
