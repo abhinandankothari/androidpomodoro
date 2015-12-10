@@ -58,15 +58,15 @@ public class PomodoroService extends Service {
         TimerTask timerTask = new PomodoroTimerTask(startTime, this);
         timer.scheduleAtFixedRate(timerTask, 0, 1000);
         Intent resultIntent = new Intent(this, MainActivity.class);
-
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,0,resultIntent,PendingIntent.FLAG_UPDATE_CURRENT);
+        resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,0,resultIntent,0);
 
         mBuilder.setContentIntent(pendingIntent);
 
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(111, mBuilder.build());
-
+        //Intent resultIntent = new Intent(this, MainActivity.class).setAction(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
     }
 
     public void onDestroy() {
