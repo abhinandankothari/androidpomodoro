@@ -1,12 +1,17 @@
 package com.random.pomodoro;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
 import java.util.Date;
@@ -22,9 +27,16 @@ public class PomodoroService extends Service {
     private boolean isRunning;
     public static final String PREFS_NAME = "PomodoroPreference";
     SharedPreferences settings;
+    NotificationCompat.Builder mBuilder;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        mBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
+                .setSmallIcon(R.mipmap.ic_stat_pomodoro)
+                .setContentTitle("Pomodoro")
+                .setContentText("Timer app");
+
+
         if (isRunning) return START_STICKY;
 
         Log.d("onStart", "onStart on Service");
@@ -45,6 +57,16 @@ public class PomodoroService extends Service {
         timer = new Timer();
         TimerTask timerTask = new PomodoroTimerTask(startTime, this);
         timer.scheduleAtFixedRate(timerTask, 0, 1000);
+        Intent resultIntent = new Intent(this, MainActivity.class);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(this,0,resultIntent,PendingIntent.FLAG_UPDATE_CURRENT);
+
+        mBuilder.setContentIntent(pendingIntent);
+
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        mNotificationManager.notify(111, mBuilder.build());
+
     }
 
     public void onDestroy() {
