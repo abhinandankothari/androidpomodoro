@@ -133,6 +133,10 @@ public class PomodoroService extends Service {
             if (elapsedTimeMillis > MainActivity.TOTAL_TIME) {
                 settings.edit().remove(ELAPSETIME).apply();
                 stopForeground(false);
+                Intent resultIntent = new Intent(PomodoroService.this, MainActivity.class);
+                resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                resultIntent.putExtra("lala", true);
+                startActivity(resultIntent);
                 stopSelf();
                 // StopForeground
             }

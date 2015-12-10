@@ -19,7 +19,7 @@ import static com.random.pomodoro.PomodoroService.PomodoroTimerTask.FINISH;
 import static com.random.pomodoro.PomodoroService.PomodoroTimerTask.TICK;
 
 public class MainActivity extends AppCompatActivity {
-    public static final long TOTAL_TIME = 60000;
+    public static final long TOTAL_TIME = 10000;
 
     TextView textView;
     BroadcastReceiver receiver;
@@ -58,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
+        onNewIntent(getIntent());
     }
 
     @Override
@@ -77,5 +78,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
 //        stopService(new Intent(getApplicationContext(), PomodoroService.class));
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        boolean lala = getIntent().getBooleanExtra("lala", false);
+        Log.d("Timer", ""+lala);
+        if(lala)
+        Toast.makeText(MainActivity.this, "Pomodoro Successful", Toast.LENGTH_LONG).show();
     }
 }
