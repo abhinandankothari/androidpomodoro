@@ -1,13 +1,11 @@
 package com.random.pomodoro;
 
-import android.app.NotificationManager;
+import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
@@ -22,21 +20,15 @@ public class PomodoroService extends Service {
     static final String START_TIME = "start_time";
     static final String IS_RUNNING = "is_running";
     public static final String ELAPSETIME = "elapsetime";
+    public static final int NOTIFICATION_ID = 111;
     private long startTime;
     private Timer timer;
     private boolean isRunning;
     public static final String PREFS_NAME = "PomodoroPreference";
     SharedPreferences settings;
-    NotificationCompat.Builder mBuilder;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        mBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
-                .setSmallIcon(R.mipmap.ic_stat_pomodoro)
-                .setContentTitle("Pomodoro")
-                .setContentText("Timer app");
-
-
         if (isRunning) return START_STICKY;
 
         Log.d("onStart", "onStart on Service");
@@ -50,6 +42,7 @@ public class PomodoroService extends Service {
             settings.edit().putLong(ELAPSETIME, startTime).apply();
         }
         startTimer();
+
         return START_STICKY;
     }
 
@@ -57,16 +50,6 @@ public class PomodoroService extends Service {
         timer = new Timer();
         TimerTask timerTask = new PomodoroTimerTask(startTime, this);
         timer.scheduleAtFixedRate(timerTask, 0, 1000);
-        Intent resultIntent = new Intent(this, MainActivity.class);
-        resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this,0,resultIntent,0);
-
-        mBuilder.setContentIntent(pendingIntent);
-
-        NotificationManager mNotificationManager =
-                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(111, mBuilder.build());
-        //Intent resultIntent = new Intent(this, MainActivity.class).setAction(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
     }
 
     public void onDestroy() {
@@ -130,13 +113,28 @@ public class PomodoroService extends Service {
                 intent.putExtra(BROADCAST_TYPE, TICK);
                 intent.putExtra("elapsed_time_mins", elapsedTimeMins);
                 intent.putExtra("elapsed_time_secs", elapsedTimeSecs);
+
+                Intent resultIntent = new Intent(PomodoroService.this, MainActivity.class);
+                resultIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                PendingIntent pendingIntent = PendingIntent.getActivity(PomodoroService.this, 0, resultIntent, 0);
+
+
+                Notification notification = new NotificationCompat.Builder(PomodoroService.this)
+                        .setSmallIcon(R.mipmap.ic_stat_pomodoro)
+                        .setContentTitle("Pomodoro")
+                        .setContentText(String.format("%02d:%02d", elapsedTimeMins, elapsedTimeSecs))
+                        .setContentIntent(pendingIntent)
+                        .build();
+                startForeground(NOTIFICATION_ID, notification);
             } else {
                 intent.putExtra(BROADCAST_TYPE, FINISH);
             }
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
             if (elapsedTimeMillis > MainActivity.TOTAL_TIME) {
                 settings.edit().remove(ELAPSETIME).apply();
+                stopForeground(false);
                 stopSelf();
+                // StopForeground
             }
         }
     }
