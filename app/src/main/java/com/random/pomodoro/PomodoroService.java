@@ -3,6 +3,7 @@ package com.random.pomodoro;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
@@ -15,21 +16,29 @@ import java.util.TimerTask;
 public class PomodoroService extends Service {
     static final String START_TIME = "start_time";
     static final String IS_RUNNING = "is_running";
+    public static final String ELAPSETIME = "elapsetime";
     private long startTime;
     private Timer timer;
     private boolean isRunning;
-
+    public static final String PREFS_NAME = "PomodoroPreference";
+    SharedPreferences settings;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (isRunning) return START_STICKY;
+
         Log.d("onStart", "onStart on Service");
-        Log.d("onStart", ""+startId);
-        if (!isRunning) {
-            isRunning = true;
+        Log.d("onStart", "" + startId);
+        isRunning = true;
+        settings = getSharedPreferences(PREFS_NAME, 0);
+        if (settings.contains(ELAPSETIME))
+            startTime = settings.getLong(ELAPSETIME, new Date().getTime());
+        else {
             startTime = new Date().getTime();
-            startTimer();
+            settings.edit().putLong(ELAPSETIME, startTime).apply();
         }
-        return super.onStartCommand(intent, START_STICKY, startId);
+        startTimer();
+        return START_STICKY;
     }
 
     private void startTimer() {
@@ -40,8 +49,9 @@ public class PomodoroService extends Service {
 
     public void onDestroy() {
         Log.d("onDestroy", "onDestroy on Service");
-        if (timer != null)
+        if (timer != null) {
             timer.cancel();
+        }
     }
 
     @Nullable
@@ -89,6 +99,7 @@ public class PomodoroService extends Service {
             Intent intent = new Intent(TIMER_ACTION);
             long currentTime = new Date().getTime();
             long elapsedTimeMillis = currentTime - startTime;
+
             Log.d("APP_LOG", "TOTAL_TIME " + elapsedTimeMillis);
             if (elapsedTimeMillis <= MainActivity.TOTAL_TIME) {
                 final long elapsedTimeMins = elapsedTimeMillis / NUMBER_OF_MILLISECONDS_IN_A_SECOND / NUMBER_OF_SECONDS_IN_MIN;
@@ -102,6 +113,7 @@ public class PomodoroService extends Service {
             }
             LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
             if (elapsedTimeMillis > MainActivity.TOTAL_TIME) {
+                settings.edit().remove(ELAPSETIME).apply();
                 stopSelf();
             }
         }
